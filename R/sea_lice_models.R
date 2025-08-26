@@ -5,11 +5,11 @@ require(emmeans)
 require(patchwork)
 
 # read data -- different assumed infestation start dates 
-data <- read_csv("/Users/haleyoleynik/Documents/UBC/Sea Lice Analysis/science_pub_data.csv")
-data_2001 <- read_csv("/Users/haleyoleynik/Documents/UBC/Sea Lice Analysis/science_pub_data_2001-start.csv")
-data_2000 <- read_csv("/Users/haleyoleynik/Documents/UBC/Sea Lice Analysis/science_pub_data_2000-start.csv")
+data <- read_csv("data/science_pub_data.csv")
+data_2001 <- read_csv("data/science_pub_data_2001-start.csv")
+data_2000 <- read_csv("data/science_pub_data_2000-start.csv")
 
-new_data_2000 <- read_csv("/Users/haleyoleynik/Documents/UBC/Sea Lice Analysis/updated_lice_data_2000.csv")
+new_data_2000 <- read_csv("data/updated_lice_data_2000.csv")
 
 data_1999 <- data_2000 %>%
   mutate(group = case_when(
@@ -43,11 +43,11 @@ data_1995 <- data_1996 %>%
 
 
 # Ricker stock-recruit equations 
-log(n(t)/n(t-2)) = r-bn(t-2)
-log(R/S) = a-bS
+#log(n(t)/n(t-2)) = r-bn(t-2)
+#log(R/S) = a-bS
 
 # random affects on both r and b (a and b) -- didn't end up using 
-log(n(t)/n(t-2)) = (r+mur)-(b+mub)*n(t-2)
+#log(n(t)/n(t-2)) = (r+mur)-(b+mub)*n(t-2)
 
 # 2002 start year (base case from paper) ----------------------------
 # Mutate data 
@@ -242,6 +242,133 @@ emm <- emmeans(model, ~ group)
 pairs(emm)
 
 # plot all years ----------
+p.2002 <- df_2002 %>%
+  filter(group != "fallow") %>%
+  ggplot(aes(x=S, y=lnrs)) +
+  geom_point(alpha = 0.1, aes(color = group)) +
+  geom_smooth(method = "lm", aes(color = group)) +
+  labs(x="n(t-2)",y="log[n(t)/n(t-2)]") +
+  theme_classic()
+
+p.2001 <- df_2001 %>%
+  filter(group != "fallow") %>%
+  ggplot(aes(x=S, y=lnrs)) +
+  geom_point(alpha = 0.1, aes(color = group)) +
+  geom_smooth(method = "lm", aes(color = group)) +
+  labs(x="n(t-2)",y="log[n(t)/n(t-2)]") +
+  theme_classic()
+
+p.2000 <- df_2000 %>%
+  filter(group != "fallow") %>%
+  ggplot(aes(x=S, y=lnrs)) +
+  geom_point(alpha = 0.1, aes(color = group)) +
+  geom_smooth(method = "lm", aes(color = group)) +
+  labs(x="n(t-2)",y="log[n(t)/n(t-2)]") +
+  theme_classic()
+
+
+# plot just like the paper does - 4 panels x 3
+p.2002 <- df_2002 %>%
+  filter(group != "fallow") %>%
+  ggplot(aes(x=S, y=lnrs)) +
+  geom_point(alpha = 0.1, aes(color = group)) +
+  geom_smooth(method = "lm", aes(color = group), se = F) +
+  facet_wrap(vars(group), nrow = 4) + 
+  labs(x="n(t-2)",y="log[n(t)/n(t-2)]") +
+  theme(legend.position = "none") + 
+  theme_classic()
+
+#2002
+# Faceted plot (3 groups separately)
+p1 <- df_2002 %>%
+  filter(group != "fallow") %>%
+  ggplot(aes(x = S, y = lnrs)) +
+  geom_point(alpha = 0.2, aes(color = group)) +
+  geom_smooth(method = "lm", aes(color = group, linetype = group), se = FALSE) +
+  facet_wrap(vars(group), nrow = 3,
+             labeller = labeller(group = c(
+               "lice" = "Lice",
+               "pre_lice" = "Pre Lice",
+               "unexposed" = "Unexposed"))) + 
+  labs(x = "n(t-2)", y = "log[n(t)/n(t-2)]") +
+  theme_classic() +
+  scale_color_manual(values = PNWColors::pnw_palette("Sunset2", 3)) +
+  theme(legend.position = "none")
+
+# Combined smooths plot
+p2 <- df_2002 %>%
+  filter(group != "fallow") %>%
+  ggplot(aes(x = S, y = lnrs, color = group)) +
+  geom_smooth(method = "lm", se = FALSE, aes(linetype = group)) +
+  labs(x = "n(t-2)", y = "log[n(t)/n(t-2)]") +
+  theme_classic() +
+  scale_color_manual(values = PNWColors::pnw_palette("Sunset2", 3)) +
+  theme(legend.position = "none")
+
+# Stack them
+p1 / p2   # patchwork syntax: top / bottom
+
+# 2001
+p2001.1 <- df_2001 %>%
+  filter(group != "fallow") %>%
+  ggplot(aes(x = S, y = lnrs)) +
+  geom_point(alpha = 0.2, aes(color = group)) +
+  geom_smooth(method = "lm", aes(color = group, linetype = group), se = FALSE) +
+  facet_wrap(vars(group), nrow = 3,
+             labeller = labeller(group = c(
+               "lice" = "Lice",
+               "pre_lice" = "Pre Lice",
+               "unexposed" = "Unexposed"))) + 
+  labs(x = "n(t-2)", y = "log[n(t)/n(t-2)]") +
+  theme_classic() +
+  scale_color_manual(values = PNWColors::pnw_palette("Sunset2", 3)) +
+  theme(legend.position = "none")
+
+# Combined smooths plot
+p2001.2 <- df_2001 %>%
+  filter(group != "fallow") %>%
+  ggplot(aes(x = S, y = lnrs, color = group)) +
+  geom_smooth(method = "lm", se = FALSE, aes(linetype = group)) +
+  labs(x = "n(t-2)", y = "log[n(t)/n(t-2)]") +
+  theme_classic() +
+  scale_color_manual(values = PNWColors::pnw_palette("Sunset2", 3)) +
+  theme(legend.position = "none")
+
+# Stack them
+p2001.1 / p2001.2   # patchwork syntax: top / bottom
+
+# 2000
+p2000.1 <- df_2000 %>%
+  filter(group != "fallow") %>%
+  ggplot(aes(x = S, y = lnrs)) +
+  geom_point(alpha = 0.2, aes(color = group)) +
+  geom_smooth(method = "lm", aes(color = group, linetype = group), se = FALSE) +
+  facet_wrap(vars(group), nrow = 3,
+             labeller = labeller(group = c(
+               "lice" = "Lice",
+               "pre_lice" = "Pre Lice",
+               "unexposed" = "Unexposed"))) + 
+  labs(x = "n(t-2)", y = "log[n(t)/n(t-2)]") +
+  theme_classic() +
+  scale_color_manual(values = PNWColors::pnw_palette("Sunset2", 3)) +
+  theme(legend.position = "none")
+
+# Combined smooths plot
+p2000.2 <- df_2000 %>%
+  filter(group != "fallow") %>%
+  ggplot(aes(x = S, y = lnrs, color = group)) +
+  geom_smooth(method = "lm", se = FALSE, aes(linetype = group)) +
+  labs(x = "n(t-2)", y = "log[n(t)/n(t-2)]") +
+  theme_classic() +
+  scale_color_manual(values = PNWColors::pnw_palette("Sunset2", 3)) +
+  theme(legend.position = "none")
+
+# Stack them
+p2000.1 / p2000.2   
+
+
+(p1 / p2) | (p2001.1 / p2001.2) | (p2000.1 / p2000.2) 
+
 p.2002 <- p.2002 + labs(title = "2002")
 p.2001 <- p.2001 + labs(title = "2001")
 p.2000 <- p.2000 + labs(title = "2000")
@@ -250,6 +377,8 @@ p.1998 <- p.1998 + labs(title = "1998")
 p.1997 <- p.1997 + labs(title = "1997")
 p.1996 <- p.1996 + labs(title = "1996")
 p.1995 <- p.1995 + labs(title = "1995")
+
+p.2002 / p.2001 / p.2000
 
 
 (p.2002 | p.2001) / (p.2000 | p.1999 ) / (p.1998 | p.1997) / (p.1996 | p.1995)
