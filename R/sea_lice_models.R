@@ -8,9 +8,11 @@ require(patchwork)
 data <- read_csv("data/science_pub_data.csv")
 data_2001 <- read_csv("data/science_pub_data_2001-start.csv")
 data_2000 <- read_csv("data/science_pub_data_2000-start.csv")
+data_1999 <- read_csv("data/science_pub_data_1999-start.csv")
 
 new_data_2000 <- read_csv("data/updated_lice_data_2000.csv")
 
+# older data -- do not use --------
 data_1999 <- data_2000 %>%
   mutate(group = case_when(
     year == 1999 ~ "lice",
@@ -54,7 +56,7 @@ data_1995 <- data_1996 %>%
 df <- data %>%
   group_by(population) %>%
   mutate(R = updated_abundance / mean(updated_abundance, na.rm=T),
-         S = lag(R,1), # because it's every two years 
+         S = lead(R,1), # because it's every two years 
          lnrs = log(R/S))
 
 # plot lnrs vs. S 
@@ -101,21 +103,67 @@ summary(unexposed.model)
 # compare three models 
 # anova(lice.model, pre_lice.model, unexposed.model)
 
+df.1 <- df %>% filter(group!="fallow")
+
 # Fit a combined model
-model <- lm(lnrs ~ S + group, data = df)
+model <- lm(lnrs ~ S + group, data = df.1)
 
 # Perform pairwise comparisons of intercepts
 emm <- emmeans(model, ~ group)
 pairs(emm)
 
-# 2001 start year ----------------------------
+# CORRECT 2001 start year ----------------------------
 
+# # THIS IS CORRECT USE THIS # # 
 # Mutate data 
+df <- data %>%
+  group_by(population) %>%
+  arrange(population, year) %>%
+  mutate(R = updated_abundance / mean(updated_abundance, na.rm=T),
+         S = lag(R,1), # because it's every two years 
+         lnrs = log(R/S)) %>%
+  ungroup()
+
+ # # THIS IS CORRECT USE THIS # # 
+# Mutate data 
+df_2001 <- data_2001 %>%
+  group_by(population) %>%
+  arrange(population, year) %>%
+  mutate(R = updated_abundance / mean(updated_abundance, na.rm=T),
+         S = lag(R,1), # because it's every two years 
+         lnrs = log(R/S)) %>%
+  ungroup()
+
+# # THIS IS CORRECT USE THIS # # 
+# Mutate data 
+df_2000 <- data_2000 %>%
+  group_by(population) %>%
+  arrange(population, year) %>%
+  mutate(R = updated_abundance / mean(updated_abundance, na.rm=T),
+         S = lag(R,1), # because it's every two years 
+         lnrs = log(R/S)) %>%
+  ungroup()
+
+check2001 <- df_2001 %>% filter(group == "lice")
+
+df_2001 %>% filter(year == 2001) %>%
+  filter(group == "lice")
+
+check <- df_2001 %>% filter(population %in% c(202,204,206,208,210,212,214))
+
+check2 <- data_2001 %>% filter(population %in% c(202,204,206,208,210,212,214))
+df_2001 %>% filter(population %in% c(202))
+
+
+# Don't group by population !!!!!!!!!!!!!!!!!!
 df_2001 <- data_2001 %>%
   group_by(population) %>%
   mutate(R = updated_abundance / mean(updated_abundance, na.rm=T),
          S = lag(R,1), # because it's every two years 
          lnrs = log(R/S))
+
+df_2001 <- df_2001 %>%
+  filter(group != "fallow") 
 
 # plot lnrs vs. S 
 df_2001 %>%
@@ -162,8 +210,11 @@ pairs(emm)
 df_2000 <- data_2000 %>%
   group_by(population) %>%
   mutate(R = updated_abundance / mean(updated_abundance, na.rm=T),
-         S = lag(R,1), # because it's every two years 
+         S = lead(R,1), # because it's every two years 
          lnrs = log(R/S))
+
+df_2000 <- df_2000 %>%
+  filter(group != "fallow")
 
 # plot lnrs vs. S 
 df_2000 %>%
@@ -205,34 +256,14 @@ emm <- emmeans(model, ~ group)
 pairs(emm)
 
 # 1999 start year ----------------------------
-
 # Mutate data 
-df_2002 <- data %>%
+df_1999 <- data_1999 %>%
   group_by(population) %>%
   mutate(R = updated_abundance / mean(updated_abundance, na.rm=T),
-         S = lag(R,1), # because it's every two years 
-         lnrs = log(R/S))
-# all on one 
-p.2002 <- df_2002 %>%
-  filter(group != "fallow") %>%
-  ggplot(aes(x=S, y=lnrs)) +
-  geom_point(alpha = 0.1, aes(color = group)) +
-  geom_smooth(method = "lm", aes(color = group)) +
-  labs(x="n(t-2)",y="log[n(t)/n(t-2)]") +
-  theme_classic()
+         S = lead(R,1), # because it's every two years 
+         lnrs = log(R/S)) %>%
+  filter(group != "fallow")
 
-lice <- df %>% filter(group == "lice")
-pre_lice <- df %>% filter(group == "pre_lice")
-unexposed <- df %>% filter(group == "unexposed")
-
-lice.model <- lm(lnrs ~ S, data = lice)
-summary(lice.model)
-
-pre_lice.model <- lm(lnrs ~ S, data = pre_lice)
-summary(pre_lice.model)
-
-unexposed.model <- lm(lnrs ~ S, data = unexposed)
-summary(unexposed.model)
 
 # Fit a combined model
 model <- lm(lnrs ~ S + group, data = df_2000)
@@ -241,46 +272,29 @@ model <- lm(lnrs ~ S + group, data = df_2000)
 emm <- emmeans(model, ~ group)
 pairs(emm)
 
-# plot all years ----------
-p.2002 <- df_2002 %>%
-  filter(group != "fallow") %>%
-  ggplot(aes(x=S, y=lnrs)) +
-  geom_point(alpha = 0.1, aes(color = group)) +
-  geom_smooth(method = "lm", aes(color = group)) +
-  labs(x="n(t-2)",y="log[n(t)/n(t-2)]") +
-  theme_classic()
 
-p.2001 <- df_2001 %>%
-  filter(group != "fallow") %>%
-  ggplot(aes(x=S, y=lnrs)) +
-  geom_point(alpha = 0.1, aes(color = group)) +
-  geom_smooth(method = "lm", aes(color = group)) +
-  labs(x="n(t-2)",y="log[n(t)/n(t-2)]") +
-  theme_classic()
+# reprocess data ----------------
+data <- read_csv("data/science_pub_data.csv")
 
-p.2000 <- df_2000 %>%
-  filter(group != "fallow") %>%
-  ggplot(aes(x=S, y=lnrs)) +
-  geom_point(alpha = 0.1, aes(color = group)) +
-  geom_smooth(method = "lm", aes(color = group)) +
-  labs(x="n(t-2)",y="log[n(t)/n(t-2)]") +
-  theme_classic()
+data_2001 <- data %>%
+  mutate(group = case_when(
+    year == 2001 ~ "lice",
+    TRUE ~ group  # Keep existing values otherwise
+  ))
 
+# this doesn't do it 
+data_2000 <- data %>%
+  mutate(group = case_when(
+    year == 2001 ~ "lice",
+    year == 2000 ~ "lice",
+    TRUE ~ group  # Keep existing values otherwise
+  ))
 
-# plot just like the paper does - 4 panels x 3
-p.2002 <- df_2002 %>%
-  filter(group != "fallow") %>%
-  ggplot(aes(x=S, y=lnrs)) +
-  geom_point(alpha = 0.1, aes(color = group)) +
-  geom_smooth(method = "lm", aes(color = group), se = F) +
-  facet_wrap(vars(group), nrow = 4) + 
-  labs(x="n(t-2)",y="log[n(t)/n(t-2)]") +
-  theme(legend.position = "none") + 
-  theme_classic()
+# FIG 1. plot all years ---------
 
 #2002
 # Faceted plot (3 groups separately)
-p1 <- df_2002 %>%
+p1 <- df %>%
   filter(group != "fallow") %>%
   ggplot(aes(x = S, y = lnrs)) +
   geom_point(alpha = 0.2, aes(color = group)) +
@@ -291,12 +305,13 @@ p1 <- df_2002 %>%
                "pre_lice" = "Pre Lice",
                "unexposed" = "Unexposed"))) + 
   labs(x = "n(t-2)", y = "log[n(t)/n(t-2)]") +
+  ylim(-8,8) +
   theme_classic() +
   scale_color_manual(values = PNWColors::pnw_palette("Sunset2", 3)) +
   theme(legend.position = "none")
 
 # Combined smooths plot
-p2 <- df_2002 %>%
+p2 <- df %>%
   filter(group != "fallow") %>%
   ggplot(aes(x = S, y = lnrs, color = group)) +
   geom_smooth(method = "lm", se = FALSE, aes(linetype = group)) +
@@ -319,6 +334,7 @@ p2001.1 <- df_2001 %>%
                "lice" = "Lice",
                "pre_lice" = "Pre Lice",
                "unexposed" = "Unexposed"))) + 
+  ylim(-8,8) +
   labs(x = "n(t-2)", y = "log[n(t)/n(t-2)]") +
   theme_classic() +
   scale_color_manual(values = PNWColors::pnw_palette("Sunset2", 3)) +
@@ -338,7 +354,7 @@ p2001.2 <- df_2001 %>%
 p2001.1 / p2001.2   # patchwork syntax: top / bottom
 
 # 2000
-p2000.1 <- df_2000 %>%
+p2000.1 <- df_1999 %>%
   filter(group != "fallow") %>%
   ggplot(aes(x = S, y = lnrs)) +
   geom_point(alpha = 0.2, aes(color = group)) +
@@ -349,12 +365,13 @@ p2000.1 <- df_2000 %>%
                "pre_lice" = "Pre Lice",
                "unexposed" = "Unexposed"))) + 
   labs(x = "n(t-2)", y = "log[n(t)/n(t-2)]") +
+  ylim(-8,8) +
   theme_classic() +
   scale_color_manual(values = PNWColors::pnw_palette("Sunset2", 3)) +
   theme(legend.position = "none")
 
 # Combined smooths plot
-p2000.2 <- df_2000 %>%
+p2000.2 <- df_1999 %>%
   filter(group != "fallow") %>%
   ggplot(aes(x = S, y = lnrs, color = group)) +
   geom_smooth(method = "lm", se = FALSE, aes(linetype = group)) +
@@ -369,36 +386,130 @@ p2000.1 / p2000.2
 
 (p1 / p2) | (p2001.1 / p2001.2) | (p2000.1 / p2000.2) 
 
-p.2002 <- p.2002 + labs(title = "2002")
-p.2001 <- p.2001 + labs(title = "2001")
-p.2000 <- p.2000 + labs(title = "2000")
-p.1999 <- p.1999 + labs(title = "1999")
-p.1998 <- p.1998 + labs(title = "1998")
-p.1997 <- p.1997 + labs(title = "1997")
-p.1996 <- p.1996 + labs(title = "1996")
-p.1995 <- p.1995 + labs(title = "1995")
+ggsave(
+  filename = "Figures/Fig_3.png",  
+  width = 15,               
+  height = 10,                 
+  dpi = 600                  
+)
 
-p.2002 / p.2001 / p.2000
+# updated data -----------------------------
 
+new_data_2000 <- read_csv("data/updated_lice_data_2000.csv")
 
-(p.2002 | p.2001) / (p.2000 | p.1999 ) / (p.1998 | p.1997) / (p.1996 | p.1995)
+new_data_2001 <- new_data_2000 %>%
+  mutate(group = case_when(
+    Year == 2000 ~ "pre_lice",
+    TRUE ~ group  # Keep existing values otherwise
+  ))
 
-# 2000 start year - UPDATED DATA ----------------------------
+new_data_2002 <- new_data_2000 %>%
+  mutate(group = case_when(
+    Year == 2000 ~ "pre_lice",
+    Year == 2001 ~ "pre_lice",
+    TRUE ~ group  # Keep existing values otherwise
+  ))
 
-# Mutate data 
-df_2000 <- data_2000 %>%
-  group_by(population) %>%
-  mutate(R = updated_abundance / mean(updated_abundance, na.rm=T),
-         S = lag(R,1), # because it's every two years 
-         lnrs = log(R/S))
-
-# all on one 
-new_data_2000 %>%
+# new
+new_data_2002 %>%
   ggplot(aes(x=spawners, y=lnrs)) +
   geom_point(alpha = 0.1, aes(color = group)) +
   geom_smooth(method = "lm", aes(color = group)) +
   labs(x="n(t-2)",y="log[n(t)/n(t-2)]") +
   theme_classic()
+
+# new starting in 2000
+new2000.1 <- new_data_2000 %>%
+  filter(group != "fallow") %>%
+  ggplot(aes(x = spawners, y = lnrs)) +
+  geom_point(alpha = 0.2, aes(color = group)) +
+  geom_smooth(method = "lm", aes(color = group, linetype = group), se = FALSE) +
+  facet_wrap(vars(group), nrow = 3,
+             labeller = labeller(group = c(
+               "lice" = "Lice",
+               "pre_lice" = "Pre Lice",
+               "unexposed" = "Unexposed"))) + 
+  labs(x = "n(t-2)", y = "log[n(t)/n(t-2)]") +
+  ylim(-8,8) +
+  theme_classic() +
+  scale_color_manual(values = PNWColors::pnw_palette("Sunset2", 3)) +
+  theme(legend.position = "none")
+
+# Combined smooths plot
+new2000.2 <- new_data_2000 %>%
+  filter(group != "fallow") %>%
+  ggplot(aes(x = spawners, y = lnrs, color = group)) +
+  geom_smooth(method = "lm", se = FALSE, aes(linetype = group)) +
+  labs(x = "n(t-2)", y = "log[n(t)/n(t-2)]") +
+  theme_classic() +
+  scale_color_manual(values = PNWColors::pnw_palette("Sunset2", 3)) +
+  theme(legend.position = "none")
+
+# Stack them
+new2000.1 / new2000.2   
+
+# new starting in 2001
+new2001.1 <- new_data_2001 %>%
+  filter(group != "fallow") %>%
+  ggplot(aes(x = spawners, y = lnrs)) +
+  geom_point(alpha = 0.2, aes(color = group)) +
+  geom_smooth(method = "lm", aes(color = group, linetype = group), se = FALSE) +
+  facet_wrap(vars(group), nrow = 3,
+             labeller = labeller(group = c(
+               "lice" = "Lice",
+               "pre_lice" = "Pre Lice",
+               "unexposed" = "Unexposed"))) + 
+  labs(x = "n(t-2)", y = "log[n(t)/n(t-2)]") +
+  ylim(-8,8) +
+  theme_classic() +
+  scale_color_manual(values = PNWColors::pnw_palette("Sunset2", 3)) +
+  theme(legend.position = "none")
+
+# Combined smooths plot
+new2001.2 <- new_data_2001 %>%
+  filter(group != "fallow") %>%
+  ggplot(aes(x = spawners, y = lnrs, color = group)) +
+  geom_smooth(method = "lm", se = FALSE, aes(linetype = group)) +
+  labs(x = "n(t-2)", y = "log[n(t)/n(t-2)]") +
+  theme_classic() +
+  scale_color_manual(values = PNWColors::pnw_palette("Sunset2", 3)) +
+  theme(legend.position = "none")
+
+# Stack them
+new2001.1 / new2001.2 
+
+# new - starting in 2002
+new2002.1 <- new_data_2002 %>%
+  filter(group != "fallow") %>%
+  ggplot(aes(x = spawners, y = lnrs)) +
+  geom_point(alpha = 0.2, aes(color = group)) +
+  geom_smooth(method = "lm", aes(color = group, linetype = group), se = FALSE) +
+  facet_wrap(vars(group), nrow = 3,
+             labeller = labeller(group = c(
+               "lice" = "Lice",
+               "pre_lice" = "Pre Lice",
+               "unexposed" = "Unexposed"))) + 
+  labs(x = "n(t-2)", y = "log[n(t)/n(t-2)]") +
+  ylim(-8,8) +
+  theme_classic() +
+  scale_color_manual(values = PNWColors::pnw_palette("Sunset2", 3)) +
+  theme(legend.position = "none")
+
+# Combined smooths plot
+new2002.2 <- new_data_2002 %>%
+  filter(group != "fallow") %>%
+  ggplot(aes(x = spawners, y = lnrs, color = group)) +
+  geom_smooth(method = "lm", se = FALSE, aes(linetype = group)) +
+  labs(x = "n(t-2)", y = "log[n(t)/n(t-2)]") +
+  theme_classic() +
+  scale_color_manual(values = PNWColors::pnw_palette("Sunset2", 4)) +
+  theme(legend.position = "none")
+
+# Stack them
+new2002.1 / new2002.2  
+
+
+(new2002.1 / new2002.2) | (new2001.1 / new2001.2) | (new2000.1 / new2000.2)
 
 
 # what's the deal - they aggregated? 
@@ -418,7 +529,7 @@ unexposed.model <- lm(lnrs ~ S, data = unexposed)
 summary(unexposed.model)
 
 # Fit a combined model
-model <- lm(lnrs ~ S + group, data = df_2000)
+model <- lm(lnrs ~ spawners + group, data = new_data_2002)
 
 # Perform pairwise comparisons of intercepts
 emm <- emmeans(model, ~ group)
@@ -506,89 +617,163 @@ pairs(emm)
 
 # Updated data from preprint ------------------------------
 
-# Run for even / odd years separately ---------------------
+# even / odd years separately ---------------------
 
+## 2002 start date --------------
 # Mutate data 
-df <- data %>%
+df.even <- data %>%
   group_by(population) %>%
   filter(odd_even == 2) %>%
   mutate(R = updated_abundance / mean(updated_abundance, na.rm=T),
          S = lag(R,1), # because it's every two years 
          lnrs = log(R/S))
 
-# plot even 2002
-even <- df %>%
-  filter(group != "fallow") %>%
-  ggplot(aes(x=S, y=lnrs)) +
-  geom_point(alpha = 0.1, aes(color = group)) +
-  geom_smooth(method = "lm", aes(color = group)) +
-  labs(x="n(t-2)",y="log[n(t)/n(t-2)]", title = "even") +
-  theme_classic()
-
-# plot odd 2002
-odd <- df %>%
-  filter(group != "fallow") %>%
-  ggplot(aes(x=S, y=lnrs)) +
-  geom_point(alpha = 0.1, aes(color = group)) +
-  geom_smooth(method = "lm", aes(color = group)) +
-  labs(x="n(t-2)",y="log[n(t)/n(t-2)]", title = "odd") +
-  theme_classic()
-
-even | odd
-
-# 2001
-df <- data_2001 %>%
+df.odd <- data %>%
   group_by(population) %>%
   filter(odd_even == 1) %>%
   mutate(R = updated_abundance / mean(updated_abundance, na.rm=T),
          S = lag(R,1), # because it's every two years 
          lnrs = log(R/S))
 
-# all on one 
-even <- df %>%
+# plot even 2002
+even <- df.even %>%
   filter(group != "fallow") %>%
   ggplot(aes(x=S, y=lnrs)) +
   geom_point(alpha = 0.1, aes(color = group)) +
   geom_smooth(method = "lm", aes(color = group)) +
-  labs(x="n(t-2)",y="log[n(t)/n(t-2)]", title = "even") +
-  theme_classic()
+  labs(x="n(t-2)",y="log[n(t)/n(t-2)]", title = "Even years", color = "") +
+  theme_classic()+
+  ylim(-10,5)+
+  scale_color_manual(values = PNWColors::pnw_palette("Sunset2", 3)) 
 
-odd <- df %>%
+# plot odd 2002
+odd <- df.odd %>%
   filter(group != "fallow") %>%
   ggplot(aes(x=S, y=lnrs)) +
   geom_point(alpha = 0.1, aes(color = group)) +
   geom_smooth(method = "lm", aes(color = group)) +
-  labs(x="n(t-2)",y="log[n(t)/n(t-2)]", title = "odd") +
-  theme_classic()
+  labs(x="n(t-2)",y="log[n(t)/n(t-2)]", title = "Odd years", color = "") +
+  theme_classic() +
+  ylim(-10,5)+
+  scale_color_manual(values = PNWColors::pnw_palette("Sunset2", 3)) 
 
 even | odd
 
-# 2000
-df <- data_2000 %>%
+# MODEL 
+df.even <- df.even %>% filter(group != "fallow")
+
+# run the model 
+# Fit a combined model
+model <- lm(lnrs ~ S + group, data = df.even)
+
+# Perform pairwise comparisons of intercepts
+emm <- emmeans(model, ~ group)
+pairs(emm)
+
+## 2001 start date --------------
+# Mutate data 
+df.even <- data_2001 %>%
   group_by(population) %>%
   filter(odd_even == 2) %>%
-  mutate(R = updated_abundance / mean(updated_abundance, na.rm=T), # normalize 
+  mutate(R = updated_abundance / mean(updated_abundance, na.rm=T),
          S = lag(R,1), # because it's every two years 
          lnrs = log(R/S))
 
-even <- df %>%
-  filter(group != "fallow") %>%
-  ggplot(aes(x=S, y=lnrs)) +
-  geom_point(alpha = 0.1, aes(color = group)) +
-  geom_smooth(method = "lm", aes(color = group)) +
-  labs(x="n(t-2)",y="log[n(t)/n(t-2)]", title = "even") +
-  theme_classic()
+df.odd <- data_2001 %>%
+  group_by(population) %>%
+  filter(odd_even == 1) %>%
+  mutate(R = updated_abundance / mean(updated_abundance, na.rm=T),
+         S = lag(R,1), # because it's every two years 
+         lnrs = log(R/S))
 
-odd <- df %>%
+# plot even 2002
+even <- df.even %>%
   filter(group != "fallow") %>%
   ggplot(aes(x=S, y=lnrs)) +
   geom_point(alpha = 0.1, aes(color = group)) +
   geom_smooth(method = "lm", aes(color = group)) +
-  labs(x="n(t-2)",y="log[n(t)/n(t-2)]", title = "odd") +
-  theme_classic()
+  labs(x="n(t-2)",y="log[n(t)/n(t-2)]", title = "Even years", color = "") +
+  theme_classic()+
+  ylim(-10,5)+
+  scale_color_manual(values = PNWColors::pnw_palette("Sunset2", 3)) 
+
+# plot odd 2002
+odd <- df.odd %>%
+  filter(group != "fallow") %>%
+  ggplot(aes(x=S, y=lnrs)) +
+  geom_point(alpha = 0.1, aes(color = group)) +
+  geom_smooth(method = "lm", aes(color = group)) +
+  labs(x="n(t-2)",y="log[n(t)/n(t-2)]", title = "Odd years", color = "") +
+  theme_classic() +
+  ylim(-10,5)+
+  scale_color_manual(values = PNWColors::pnw_palette("Sunset2", 3)) 
 
 even | odd
 
+# MODEL 
+df.even <- df.even %>% filter(group != "fallow")
+
+# run the model 
+# Fit a combined model
+model <- lm(lnrs ~ S + group, data = df.odd)
+
+# Perform pairwise comparisons of intercepts
+emm <- emmeans(model, ~ group)
+pairs(emm)
+
+## 2000 start date --------------
+# Mutate data 
+df.even <- data_2000 %>%
+  group_by(population) %>%
+  filter(odd_even == 2) %>%
+  mutate(R = updated_abundance / mean(updated_abundance, na.rm=T),
+         S = lag(R,1), # because it's every two years 
+         lnrs = log(R/S))
+
+df.odd <- data_2000 %>%
+  group_by(population) %>%
+  filter(odd_even == 1) %>%
+  mutate(R = updated_abundance / mean(updated_abundance, na.rm=T),
+         S = lag(R,1), # because it's every two years 
+         lnrs = log(R/S))
+
+# plot even 2002
+even <- df.even %>%
+  filter(group != "fallow") %>%
+  ggplot(aes(x=S, y=lnrs)) +
+  geom_point(alpha = 0.1, aes(color = group)) +
+  geom_smooth(method = "lm", aes(color = group)) +
+  labs(x="n(t-2)",y="log[n(t)/n(t-2)]", title = "Even years", color = "") +
+  theme_classic()+
+  ylim(-10,5)+
+  scale_color_manual(values = PNWColors::pnw_palette("Sunset2", 3)) 
+
+# plot odd 2002
+odd <- df.odd %>%
+  filter(group != "fallow") %>%
+  ggplot(aes(x=S, y=lnrs)) +
+  geom_point(alpha = 0.1, aes(color = group)) +
+  geom_smooth(method = "lm", aes(color = group)) +
+  labs(x="n(t-2)",y="log[n(t)/n(t-2)]", title = "Odd years", color = "") +
+  theme_classic() +
+  ylim(-10,5)+
+  scale_color_manual(values = PNWColors::pnw_palette("Sunset2", 3)) 
+
+even | odd
+
+# MODEL 
+df.even <- df.even %>% filter(group != "fallow")
+
+# run the model 
+# Fit a combined model
+model <- lm(lnrs ~ S + group, data = df.odd)
+
+# Perform pairwise comparisons of intercepts
+emm <- emmeans(model, ~ group)
+pairs(emm)
+
+
+# facet wrap populations 
 ggplot(data_2000, aes(x=year,y=updated_abundance,color=as.factor(population))) +
   geom_line() +
   facet_wrap(vars(odd_even))
