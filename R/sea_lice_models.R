@@ -53,55 +53,36 @@ data_1995 <- data_1996 %>%
 
 # 2002 start year (base case from paper) ----------------------------
 # Mutate data 
+# df <- data %>%
+#   group_by(population) %>%
+#   mutate(R = updated_abundance / mean(updated_abundance, na.rm=T),
+#          S = lead(R,1), # because it's every two years 
+#          lnrs = log(R/S))
+
+# # THIS IS CORRECT USE THIS # # 
+# Mutate data 
 df <- data %>%
   group_by(population) %>%
+  arrange(population, year) %>%
   mutate(R = updated_abundance / mean(updated_abundance, na.rm=T),
-         S = lead(R,1), # because it's every two years 
-         lnrs = log(R/S))
+         S = lag(R,1), # because it's every two years 
+         lnrs = log(R/S)) %>%
+  ungroup()
 
-# plot lnrs vs. S 
-df %>%
-  filter(group != "fallow") %>%
-ggplot(aes(x=S, y=lnrs)) +
-  geom_point(alpha = 0.1) +
-  facet_grid(vars(group)) + 
-  geom_smooth(method = "lm") +
-  labs(x="n(t-2)",y="log[n(t)/n(t-2)]") +
-  theme_classic()
 
-# all on one 
-df %>%
-  filter(group != "fallow") %>%
-  ggplot(aes(x=S, y=lnrs)) +
-  geom_point(alpha = 0.1, aes(color = group)) +
-  geom_smooth(method = "lm", aes(color = group)) +
-  labs(x="n(t-2)",y="log[n(t)/n(t-2)]") +
-  theme_classic()
+# # try averaging and calculating mean R
+# df <- data %>%
+#   group_by(population, group) %>%
+#   arrange(population, year) %>%
+#   mutate(R = updated_abundance / mean(updated_abundance, na.rm=T)) %>%
+#   ungroup() %>%
+#   group_by(population) %>%
+#   arrange(population, year) %>%
+#   mutate(S = lag(R,1),
+#          lnrs = log(R/S)) %>%
+#   ungroup()
 
-df %>%
-  filter(group != "fallow") %>%
-  ggplot(aes(x=S, y=lnrs)) +
-  geom_point(alpha = 0.1, aes(color = group)) +
-  geom_smooth(method = "lm", aes(color = group)) +
-  labs(x="n(t-2)",y="log[n(t)/n(t-2)]") +
-  facet_wrap(vars(population)) + 
-  theme_classic()
-
-lice <- df %>% filter(group == "lice")
-pre_lice <- df %>% filter(group == "pre_lice")
-unexposed <- df %>% filter(group == "unexposed")
-
-lice.model <- lm(lnrs ~ S, data = lice)
-summary(lice.model)
-
-pre_lice.model <- lm(lnrs ~ S, data = pre_lice)
-summary(pre_lice.model)
-
-unexposed.model <- lm(lnrs ~ S, data = unexposed)
-summary(unexposed.model)
-
-# compare three models 
-# anova(lice.model, pre_lice.model, unexposed.model)
+df %>% filter(population %in% c(202))
 
 df.1 <- df %>% filter(group!="fallow")
 
@@ -112,31 +93,11 @@ model <- lm(lnrs ~ S + group, data = df.1)
 emm <- emmeans(model, ~ group)
 pairs(emm)
 
-# CORRECT 2001 start year ----------------------------
-
-# # THIS IS CORRECT USE THIS # # 
-# Mutate data 
-df <- data %>%
-  group_by(population) %>%
-  arrange(population, year) %>%
-  mutate(R = updated_abundance / mean(updated_abundance, na.rm=T),
-         S = lag(R,1), # because it's every two years 
-         lnrs = log(R/S)) %>%
-  ungroup()
+#  2001 start year ----------------------------
 
  # # THIS IS CORRECT USE THIS # # 
 # Mutate data 
 df_2001 <- data_2001 %>%
-  group_by(population) %>%
-  arrange(population, year) %>%
-  mutate(R = updated_abundance / mean(updated_abundance, na.rm=T),
-         S = lag(R,1), # because it's every two years 
-         lnrs = log(R/S)) %>%
-  ungroup()
-
-# # THIS IS CORRECT USE THIS # # 
-# Mutate data 
-df_2000 <- data_2000 %>%
   group_by(population) %>%
   arrange(population, year) %>%
   mutate(R = updated_abundance / mean(updated_abundance, na.rm=T),
@@ -154,48 +115,11 @@ check <- df_2001 %>% filter(population %in% c(202,204,206,208,210,212,214))
 check2 <- data_2001 %>% filter(population %in% c(202,204,206,208,210,212,214))
 df_2001 %>% filter(population %in% c(202))
 
-
-# Don't group by population !!!!!!!!!!!!!!!!!!
-df_2001 <- data_2001 %>%
-  group_by(population) %>%
-  mutate(R = updated_abundance / mean(updated_abundance, na.rm=T),
-         S = lag(R,1), # because it's every two years 
-         lnrs = log(R/S))
-
 df_2001 <- df_2001 %>%
   filter(group != "fallow") 
 
-# plot lnrs vs. S 
-df_2001 %>%
-  filter(group != "fallow") %>%
-  ggplot(aes(x=S, y=lnrs)) +
-  geom_point(alpha = 0.1) +
-  facet_grid(vars(group)) + 
-  geom_smooth(method = "lm") +
-  labs(x="n(t-2)",y="log[n(t)/n(t-2)]") +
-  theme_classic()
 
-# all on one 
-df_2001 %>%
-  filter(group != "fallow") %>%
-  ggplot(aes(x=S, y=lnrs)) +
-  geom_point(alpha = 0.1, aes(color = group)) +
-  geom_smooth(method = "lm", aes(color = group)) +
-  labs(x="n(t-2)",y="log[n(t)/n(t-2)]") +
-  theme_classic()
-
-lice <- df %>% filter(group == "lice")
-pre_lice <- df %>% filter(group == "pre_lice")
-unexposed <- df %>% filter(group == "unexposed")
-
-lice.model <- lm(lnrs ~ S, data = lice)
-summary(lice.model)
-
-pre_lice.model <- lm(lnrs ~ S, data = pre_lice)
-summary(pre_lice.model)
-
-unexposed.model <- lm(lnrs ~ S, data = unexposed)
-summary(unexposed.model)
+df_2001 <- df_2001 %>% filter(group != "fallow")
 
 # Fit a combined model
 model <- lm(lnrs ~ S + group, data = df_2001)
@@ -206,47 +130,25 @@ pairs(emm)
 
 # 2000 start year ----------------------------
 
+# # Mutate data 
+# df_2000 <- data_2000 %>%
+#   group_by(population) %>%
+#   mutate(R = updated_abundance / mean(updated_abundance, na.rm=T),
+#          S = lead(R,1), # because it's every two years 
+#          lnrs = log(R/S))
+
+# # THIS IS CORRECT USE THIS # # 
 # Mutate data 
 df_2000 <- data_2000 %>%
   group_by(population) %>%
+  arrange(population, year) %>%
   mutate(R = updated_abundance / mean(updated_abundance, na.rm=T),
-         S = lead(R,1), # because it's every two years 
-         lnrs = log(R/S))
+         S = lag(R,1), # because it's every two years 
+         lnrs = log(R/S)) %>%
+  ungroup()
 
 df_2000 <- df_2000 %>%
   filter(group != "fallow")
-
-# plot lnrs vs. S 
-df_2000 %>%
-  filter(group != "fallow") %>%
-  ggplot(aes(x=S, y=lnrs)) +
-  geom_point(alpha = 0.1) +
-  facet_grid(vars(group)) + 
-  geom_smooth(method = "lm") +
-  labs(x="n(t-2)",y="log[n(t)/n(t-2)]") +
-  theme_classic()
-
-# all on one 
-df_2000 %>%
-  filter(group != "fallow") %>%
-  ggplot(aes(x=S, y=lnrs)) +
-  geom_point(alpha = 0.1, aes(color = group)) +
-  geom_smooth(method = "lm", aes(color = group)) +
-  labs(x="n(t-2)",y="log[n(t)/n(t-2)]") +
-  theme_classic()
-
-lice <- df %>% filter(group == "lice")
-pre_lice <- df %>% filter(group == "pre_lice")
-unexposed <- df %>% filter(group == "unexposed")
-
-lice.model <- lm(lnrs ~ S, data = lice)
-summary(lice.model)
-
-pre_lice.model <- lm(lnrs ~ S, data = pre_lice)
-summary(pre_lice.model)
-
-unexposed.model <- lm(lnrs ~ S, data = unexposed)
-summary(unexposed.model)
 
 # Fit a combined model
 model <- lm(lnrs ~ S + group, data = df_2000)
@@ -256,39 +158,34 @@ emm <- emmeans(model, ~ group)
 pairs(emm)
 
 # 1999 start year ----------------------------
+# # THIS IS CORRECT USE THIS # # 
 # Mutate data 
 df_1999 <- data_1999 %>%
   group_by(population) %>%
+  arrange(population, year) %>%
   mutate(R = updated_abundance / mean(updated_abundance, na.rm=T),
-         S = lead(R,1), # because it's every two years 
+         S = lag(R,1), # because it's every two years 
          lnrs = log(R/S)) %>%
+  ungroup() %>%
   filter(group != "fallow")
 
-
 # Fit a combined model
-model <- lm(lnrs ~ S + group, data = df_2000)
+model <- lm(lnrs ~ S + group, data = df_1999)
 
 # Perform pairwise comparisons of intercepts
 emm <- emmeans(model, ~ group)
 pairs(emm)
 
-
-# reprocess data ----------------
-data <- read_csv("data/science_pub_data.csv")
-
-data_2001 <- data %>%
-  mutate(group = case_when(
-    year == 2001 ~ "lice",
-    TRUE ~ group  # Keep existing values otherwise
-  ))
-
-# this doesn't do it 
-data_2000 <- data %>%
-  mutate(group = case_when(
-    year == 2001 ~ "lice",
-    year == 2000 ~ "lice",
-    TRUE ~ group  # Keep existing values otherwise
-  ))
+# Try using updated abundance for spawners --------------------
+# # THIS IS CORRECT USE THIS # # 
+# Mutate data 
+df <- data %>%
+  group_by(population) %>%
+  arrange(population, year) %>%
+  mutate(R = abundance / mean(abundance, na.rm=T),
+         S= lag(R,1), # because it's every two years 
+         lnrs = log(R/S)) %>%
+  ungroup()
 
 # FIG 1. plot all years ---------
 
